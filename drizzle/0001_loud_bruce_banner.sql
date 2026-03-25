@@ -1,0 +1,1 @@
+ALTER TABLE "students" ADD COLUMN "manual_points" integer DEFAULT 0 NOT NULL;
