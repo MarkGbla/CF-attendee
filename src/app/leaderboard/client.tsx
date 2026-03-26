@@ -3,7 +3,12 @@
 import { useEffect, useRef, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import LeaderboardBackground from "@/components/leaderboard/LeaderboardBackground";
+import dynamic from "next/dynamic";
+
+const LeaderboardBackground = dynamic(
+  () => import("@/components/leaderboard/LeaderboardBackground"),
+  { ssr: false }
+);
 
 interface LeaderboardEntry {
   id: number;

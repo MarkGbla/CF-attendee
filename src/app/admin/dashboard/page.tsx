@@ -8,26 +8,7 @@ import ChallengesList from "@/components/admin/ChallengesList";
 import TaskSubmissionsModal from "@/components/admin/TaskSubmissionsModal";
 import AddPointsModal from "@/components/admin/AddPointsModal";
 import EditStudentModal from "@/components/admin/EditStudentModal";
-
-interface Student {
-  id: number;
-  name: string;
-  slug: string;
-  createdAt: string;
-}
-
-interface Challenge {
-  id: number;
-  title: string;
-  description: string;
-  type: "quiz" | "task" | "streak";
-  status: "draft" | "active" | "archived";
-  pointsReward: number;
-  badgeEmoji: string | null;
-  badgeName: string | null;
-  anchorSession: number;
-  streakRequired: number | null;
-}
+import type { Student, Challenge } from "@/types";
 
 type Tab = "students" | "challenges";
 

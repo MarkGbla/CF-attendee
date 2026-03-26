@@ -5,7 +5,7 @@ import {
   challenges,
   studentChallengeProgress,
 } from "@/lib/db/schema";
-import { eq, asc, max, and, sql } from "drizzle-orm";
+import { eq, asc, max } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import StudentMapClient from "./client";
 
@@ -78,53 +78,13 @@ export default async function StudentPage({ params }: Props) {
 
   const progressMap = new Map(progress.map((p) => [p.challengeId, p]));
 
-  // Calculate streaks
-  let maxStreak = 0;
+  // Calculate streaks (read-only)
   let currentStreak = 0;
   for (const record of records) {
     if (record.status === "present") {
       currentStreak++;
-      maxStreak = Math.max(maxStreak, currentStreak);
     } else {
       currentStreak = 0;
-    }
-  }
-
-  // Auto-complete streak challenges
-  for (const challenge of activeChallenges) {
-    if (
-      challenge.type === "streak" &&
-      challenge.streakRequired &&
-      maxStreak >= challenge.streakRequired &&
-      !progressMap.get(challenge.id)?.completed
-    ) {
-      const [upserted] = await db
-        .insert(studentChallengeProgress)
-        .values({
-          studentId: student.id,
-          challengeId: challenge.id,
-          completed: true,
-          pointsEarned: challenge.pointsReward,
-          badgeEarned: !!challenge.badgeName,
-          completedAt: sql`now()`,
-        })
-        .onConflictDoUpdate({
-          target: [
-            studentChallengeProgress.studentId,
-            studentChallengeProgress.challengeId,
-          ],
-          set: {
-            completed: sql`true`,
-            pointsEarned: sql`${challenge.pointsReward}`,
-            badgeEarned: sql`${!!challenge.badgeName}`,
-            completedAt: sql`now()`,
-          },
-        })
-        .returning();
-
-      if (upserted) {
-        progressMap.set(challenge.id, upserted);
-      }
     }
   }
 
@@ -156,9 +116,11 @@ export default async function StudentPage({ params }: Props) {
     anchorSession: c.anchorSession,
   }));
 
-  // Compute stats
+  // Compute stats — include attendance points (10 per present session) to match leaderboard
+  const presentCount = records.filter((r) => r.status === "present").length;
+  const attendancePoints = presentCount * 10;
   const challengePoints = progress.reduce((sum, p) => sum + p.pointsEarned, 0);
-  const totalPoints = challengePoints + (student.manualPoints ?? 0);
+  const totalPoints = attendancePoints + challengePoints + (student.manualPoints ?? 0);
   const badges: { emoji: string; name: string }[] = [];
   for (const p of progress) {
     if (p.badgeEarned && p.completed) {

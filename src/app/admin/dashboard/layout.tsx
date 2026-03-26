@@ -10,8 +10,8 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
 
-  function handleLogout() {
-    document.cookie = "auth-token=; path=/; max-age=0";
+  async function handleLogout() {
+    await fetch("/api/admin/logout", { method: "POST" });
     router.push("/admin/login");
   }
 

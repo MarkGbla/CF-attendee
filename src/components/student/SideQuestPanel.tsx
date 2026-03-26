@@ -235,19 +235,27 @@ export default function SideQuestPanel({
               </div>
             ) : (
               <>
-                <textarea
-                  value={taskText}
-                  onChange={(e) => setTaskText(e.target.value)}
-                  rows={4}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none resize-none text-gray-800"
-                  placeholder="Describe what you did..."
-                />
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Submission Link
+                  </label>
+                  <input
+                    type="url"
+                    value={taskText}
+                    onChange={(e) => setTaskText(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-gray-800"
+                    placeholder="https://github.com/your-repo or drive link..."
+                  />
+                  <p className="text-xs text-gray-400">
+                    Paste a link to your work (GitHub, Google Drive, etc.)
+                  </p>
+                </div>
                 <button
                   onClick={submitTask}
                   disabled={loading || !taskText.trim()}
                   className="w-full py-3 bg-teal-600 text-white font-semibold rounded-lg hover:bg-teal-700 transition disabled:opacity-50 cursor-pointer"
                 >
-                  {loading ? "Submitting..." : "Submit Task"}
+                  {loading ? "Submitting..." : "Submit for Review"}
                 </button>
               </>
             )}

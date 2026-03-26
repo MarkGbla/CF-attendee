@@ -1,8 +1,15 @@
 "use client";
 
+import { useEffect } from "react";
+import dynamic from "next/dynamic";
 import ProgressMap from "@/components/student/ProgressMap";
-import ThreeBackground from "@/components/student/ThreeBackground";
 import type { SideQuestNode } from "@/types";
+import { completeStreakChallenges } from "./actions";
+
+const ThreeBackground = dynamic(
+  () => import("@/components/student/ThreeBackground"),
+  { ssr: false }
+);
 
 interface Session {
   sessionNumber: number;
@@ -26,6 +33,11 @@ export default function StudentMapClient({
   stats,
   currentStreak,
 }: Props) {
+  // Trigger streak auto-completion as a side effect, not during render
+  useEffect(() => {
+    completeStreakChallenges(studentSlug);
+  }, [studentSlug]);
+
   return (
     <div className="min-h-screen relative overflow-hidden bg-[#0A0A0A]">
       <ThreeBackground />
