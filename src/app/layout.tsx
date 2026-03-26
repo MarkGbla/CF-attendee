@@ -8,8 +8,20 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Christex Attendance",
+  title: "Christex Attend",
   description: "Gamified attendance tracking for Christex Engineering Cohort",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || "https://christex-attend.vercel.app"),
+  openGraph: {
+    title: "Christex Attend",
+    description: "Gamified attendance tracking with leaderboards, challenges, badges & streaks",
+    siteName: "Christex Attend",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Christex Attend",
+    description: "Gamified attendance tracking with leaderboards, challenges, badges & streaks",
+  },
 };
 
 export default function RootLayout({

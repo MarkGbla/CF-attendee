@@ -1,7 +1,8 @@
 "use client";
 
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Logo from "@/components/ui/Logo";
 
 export default function DashboardLayout({
   children,
@@ -21,10 +22,8 @@ export default function DashboardLayout({
       <aside className="hidden md:flex flex-col w-64 bg-[#1A1A1A] text-white rounded-r-3xl sticky top-0 h-screen">
         {/* Brand */}
         <div className="px-6 pt-8 pb-6">
-          <h1 className="text-xl font-bold tracking-tight">
-            <span className="text-[#C4A265]">Christex</span> Attend
-          </h1>
-          <p className="text-[#777] text-xs mt-1">Admin Dashboard</p>
+          <Logo size="md" />
+          <p className="text-[#777] text-xs mt-2 ml-[42px]">Admin Dashboard</p>
         </div>
 
         {/* Nav */}
@@ -50,9 +49,7 @@ export default function DashboardLayout({
       <div className="flex-1 flex flex-col min-h-screen">
         {/* Mobile header */}
         <header className="md:hidden bg-[#1A1A1A] text-white px-4 py-4 flex items-center justify-between">
-          <h1 className="text-lg font-bold">
-            <span className="text-[#C4A265]">Christex</span> Attend
-          </h1>
+          <Logo size="sm" />
           <button
             onClick={handleLogout}
             className="text-sm text-[#999] hover:text-white transition cursor-pointer"
