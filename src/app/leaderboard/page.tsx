@@ -63,7 +63,7 @@ export default async function LeaderboardPage() {
   const challengePoints = await db
     .select({
       studentId: studentChallengeProgress.studentId,
-      totalPoints: sql<number>`coalesce(sum(${studentChallengeProgress.pointsEarned}), 0)`.as("total_points"),
+      totalPoints: sql<number>`coalesce(sum(${studentChallengeProgress.pointsEarned}) filter (where ${studentChallengeProgress.completed} = true), 0)`.as("total_points"),
       completedCount: sql<number>`count(*) filter (where ${studentChallengeProgress.completed} = true)`.as("completed_count"),
       badgeCount: sql<number>`count(*) filter (where ${studentChallengeProgress.badgeEarned} = true and ${studentChallengeProgress.completed} = true)`.as("badge_count"),
     })

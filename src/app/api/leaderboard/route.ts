@@ -57,7 +57,7 @@ export async function GET() {
     const challengePoints = await db
       .select({
         studentId: studentChallengeProgress.studentId,
-        totalPoints: sql<number>`coalesce(sum(${studentChallengeProgress.pointsEarned}), 0)`.as(
+        totalPoints: sql<number>`coalesce(sum(${studentChallengeProgress.pointsEarned}) filter (where ${studentChallengeProgress.completed} = true), 0)`.as(
           "total_points"
         ),
         completedCount: sql<number>`count(*) filter (where ${studentChallengeProgress.completed} = true)`.as(

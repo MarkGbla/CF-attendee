@@ -4,8 +4,9 @@ import {
   students,
   studentChallengeProgress,
   challenges,
+  attendance,
 } from "@/lib/db/schema";
-import { eq, and, sum, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 interface Params {
   params: Promise<{ slug: string }>;
@@ -25,13 +26,21 @@ export async function GET(_request: NextRequest, { params }: Params) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
 
+    const records = await db
+      .select()
+      .from(attendance)
+      .where(eq(attendance.studentId, student.id));
+
+    const presentCount = records.filter((r) => r.status === "present").length;
+    const attendancePoints = presentCount * 10;
+
     const progress = await db
       .select()
       .from(studentChallengeProgress)
       .where(eq(studentChallengeProgress.studentId, student.id));
 
-    const challengePoints = progress.reduce((sum, p) => sum + p.pointsEarned, 0);
-    const totalPoints = challengePoints + (student.manualPoints ?? 0);
+    const challengePoints = progress.filter((p) => p.completed).reduce((sum, p) => sum + p.pointsEarned, 0);
+    const totalPoints = attendancePoints + challengePoints + (student.manualPoints ?? 0);
     const badges = progress
       .filter((p) => p.badgeEarned && p.completed)
       .map((p) => p.challengeId);

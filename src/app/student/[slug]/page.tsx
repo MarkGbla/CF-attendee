@@ -125,7 +125,7 @@ export default async function StudentPage({ params }: Props) {
   // Compute stats — include attendance points (10 per present session) to match leaderboard
   const presentCount = records.filter((r) => r.status === "present").length;
   const attendancePoints = presentCount * 10;
-  const challengePoints = progress.reduce((sum, p) => sum + p.pointsEarned, 0);
+  const challengePoints = progress.filter((p) => p.completed).reduce((sum, p) => sum + p.pointsEarned, 0);
   const totalPoints = attendancePoints + challengePoints + (student.manualPoints ?? 0);
   const badges: { emoji: string; name: string }[] = [];
   for (const p of progress) {

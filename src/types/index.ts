@@ -7,6 +7,7 @@ export interface Student {
   id: number;
   name: string;
   slug: string;
+  manualPoints: number;
   createdAt: string;
 }
 
