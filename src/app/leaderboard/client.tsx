@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import StudentAvatar from "@/components/ui/StudentAvatar";
-import { getDiceBearUrl } from "@/lib/avatar";
 
 const ThreeBackground = dynamic(
   () => import("@/components/student/ThreeBackground"),
@@ -54,279 +53,211 @@ function getWeekLabel(): string {
   return monday.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-/* ─── Floating particles ─── */
-function Particles({ width, height }: { width: number; height: number }) {
-  const particles = useMemo(() => {
-    const p: { cx: number; cy: number; r: number; delay: number; color: string }[] = [];
-    for (let i = 0; i < 20; i++) {
-      const seed = Math.sin(i * 9301 + 49297) * 49297;
-      const rand = seed - Math.floor(seed);
-      const seed2 = Math.sin((i + 50) * 9301 + 49297) * 49297;
-      const rand2 = seed2 - Math.floor(seed2);
-      p.push({
-        cx: rand * width,
-        cy: rand2 * height,
-        r: 1 + rand * 2,
-        delay: rand2 * 5,
-        color: i % 3 === 0 ? "#C4A265" : i % 3 === 1 ? "#4ADE80" : "#A78BFA",
+function starPoints(cx: number, cy: number, r: number): string {
+  const inner = r * 0.45;
+  const points: string[] = [];
+  for (let i = 0; i < 5; i++) {
+    const outerAngle = (Math.PI / 2) + (i * 2 * Math.PI) / 5;
+    const innerAngle = outerAngle + Math.PI / 5;
+    points.push(`${cx + r * Math.cos(outerAngle)},${cy - r * Math.sin(outerAngle)}`);
+    points.push(`${cx + inner * Math.cos(innerAngle)},${cy - inner * Math.sin(innerAngle)}`);
+  }
+  return points.join(" ");
+}
+
+/* ─── Candy decorations ─── */
+function Lollipop({ x, y, color, size = 1 }: { x: number; y: number; color: string; size?: number }) {
+  const s = 10 * size;
+  return (
+    <g className="animate-float-candy" style={{ animationDelay: `${x % 3}s` }}>
+      <line x1={x} y1={y + s} x2={x} y2={y + s + 16 * size} stroke="#8B7355" strokeWidth={2.5 * size} strokeLinecap="round" />
+      <circle cx={x} cy={y + s * 0.3} r={s} fill={color} opacity={0.4} />
+      <circle cx={x} cy={y + s * 0.3} r={s * 0.55} fill="none" stroke="white" strokeWidth={1.5 * size} opacity={0.12} />
+    </g>
+  );
+}
+
+function CandyCane({ x, y, flip = false }: { x: number; y: number; flip?: boolean }) {
+  const scaleX = flip ? -1 : 1;
+  return (
+    <g transform={`translate(${x},${y}) scale(${scaleX},1)`} opacity={0.25}>
+      <path d="M0 35 L0 10 A10 10 0 0 1 20 10" fill="none" stroke="#C4A265" strokeWidth={4} strokeLinecap="round" />
+      <path d="M0 30 L0 10 A10 10 0 0 1 20 10" fill="none" stroke="white" strokeWidth={4} strokeDasharray="5 5" strokeLinecap="round" opacity={0.25} />
+    </g>
+  );
+}
+
+function Star4({ x, y, size, color }: { x: number; y: number; size: number; color: string }) {
+  return (
+    <g className="animate-sparkle" style={{ animationDelay: `${(x + y) % 4}s` }}>
+      <polygon
+        points={`${x},${y - size} ${x + size * 0.3},${y - size * 0.3} ${x + size},${y} ${x + size * 0.3},${y + size * 0.3} ${x},${y + size} ${x - size * 0.3},${y + size * 0.3} ${x - size},${y} ${x - size * 0.3},${y - size * 0.3}`}
+        fill={color}
+        opacity={0.7}
+      />
+    </g>
+  );
+}
+
+function CandyLandscape({ width, height }: { width: number; height: number }) {
+  const hills = useMemo(() => {
+    const result: { d: string; fill: string; opacity: number }[] = [];
+    const step = 400;
+    for (let y = 100; y < height; y += step) {
+      result.push({
+        d: `M0 ${y + 60} Q${width * 0.25} ${y - 30} ${width * 0.5} ${y + 40} Q${width * 0.75} ${y + 110} ${width} ${y + 30} L${width} ${y + 150} L0 ${y + 150} Z`,
+        fill: "#C4A265",
+        opacity: 0.03,
       });
     }
-    return p;
+    return result;
   }, [width, height]);
 
   return (
     <g>
-      {particles.map((p, i) => (
-        <circle
-          key={i}
-          cx={p.cx}
-          cy={p.cy}
-          r={p.r}
-          fill={p.color}
-          opacity={0.3}
-          className="animate-sparkle"
-          style={{ animationDelay: `${p.delay}s` }}
-        />
+      {hills.map((hill, i) => (
+        <path key={i} d={hill.d} fill={hill.fill} opacity={hill.opacity} />
       ))}
     </g>
   );
 }
 
-/* ─── Milestone node ─── */
-function MilestoneNode({ cx, cy, sessionNum, isStart, isTop }: { cx: number; cy: number; sessionNum: number; isStart: boolean; isTop: boolean }) {
-  const isMajor = isStart || isTop || sessionNum % 5 === 0;
-  const r = isMajor ? 22 : 10;
-
-  return (
-    <g>
-      {/* Glow for major */}
-      {isMajor && (
-        <>
-          <circle cx={cx} cy={cy} r={r + 16} fill="none" stroke="#C4A265" strokeWidth={1} opacity={0.1} />
-          <circle cx={cx} cy={cy} r={r + 10} fill="none" stroke="#C4A265" strokeWidth={1} opacity={0.15} className="animate-pulse-glow" />
-        </>
-      )}
-
-      {/* Outer glow ring */}
-      <circle cx={cx} cy={cy} r={r + 3} fill={isMajor ? "rgba(196,162,101,0.15)" : "rgba(255,255,255,0.03)"} />
-
-      {/* Main circle */}
-      <circle cx={cx} cy={cy} r={r} fill={isMajor ? "#1A1A1A" : "#151515"} stroke={isMajor ? "#C4A265" : "#2A2A2A"} strokeWidth={isMajor ? 2 : 1.5} />
-
-      {/* Inner highlight */}
-      {isMajor && (
-        <circle cx={cx} cy={cy} r={r - 4} fill="none" stroke="#C4A265" strokeWidth={0.5} opacity={0.3} />
-      )}
-
-      {/* Label */}
-      {isMajor && !isStart ? (
-        <text x={cx} y={cy + 1} textAnchor="middle" dominantBaseline="central" fill="#C4A265" fontSize={10} fontWeight={800} fontFamily="Inter, system-ui, sans-serif" letterSpacing="0.5">
-          S{sessionNum}
-        </text>
-      ) : !isStart && !isMajor ? (
-        <text
-          x={cx + (cx > 290 ? -(r + 14) : r + 14)}
-          y={cy + 1}
-          textAnchor={cx > 290 ? "end" : "start"}
-          dominantBaseline="central"
-          fill="rgba(196,162,101,0.25)"
-          fontSize={9}
-          fontWeight={600}
-          fontFamily="Inter, system-ui, sans-serif"
-        >
-          S{sessionNum}
-        </text>
-      ) : null}
-
-      {/* XP indicator next to milestones */}
-      {isMajor && !isStart && !isTop && (
-        <g>
-          <rect x={cx + (cx > 290 ? -(r + 52) : r + 8)} y={cy - 8} width={42} height={16} rx={8} fill="rgba(74,222,128,0.1)" stroke="rgba(74,222,128,0.2)" strokeWidth={0.5} />
-          <text x={cx + (cx > 290 ? -(r + 31) : r + 29)} y={cy + 1} textAnchor="middle" dominantBaseline="central" fill="#4ADE80" fontSize={7} fontWeight={700} fontFamily="Inter, system-ui, sans-serif">
-            +{sessionNum * 10} XP
-          </text>
-        </g>
-      )}
-
-      {/* Start badge */}
-      {isStart && (
-        <g>
-          <rect x={cx - 40} y={cy + r + 14} width={80} height={28} rx={14} fill="#C4A265" />
-          <rect x={cx - 40} y={cy + r + 14} width={80} height={28} rx={14} fill="none" stroke="#FFD700" strokeWidth={1} opacity={0.3} />
-          <text x={cx} y={cy + r + 29} textAnchor="middle" dominantBaseline="central" fill="#1A1A1A" fontSize={11} fontWeight={900} fontFamily="Inter, system-ui, sans-serif" letterSpacing="1">
-            START
-          </text>
-        </g>
-      )}
-
-      {/* Finish badge */}
-      {isTop && !isStart && (
-        <g>
-          <text x={cx} y={cy - r - 20} textAnchor="middle" fontSize={24}>
-            &#x1F3C6;
-          </text>
-          <rect x={cx - 50} y={cy - r - 56} width={100} height={28} rx={14} fill="linear-gradient(90deg, #C4A265, #FFD700)" />
-          <rect x={cx - 50} y={cy - r - 56} width={100} height={28} rx={14} fill="#C4A265" />
-          <rect x={cx - 50} y={cy - r - 56} width={100} height={28} rx={14} fill="none" stroke="#FFD700" strokeWidth={1} opacity={0.4} />
-          <text x={cx} y={cy - r - 41} textAnchor="middle" dominantBaseline="central" fill="#1A1A1A" fontSize={9} fontWeight={900} fontFamily="Inter, system-ui, sans-serif" letterSpacing="1">
-            SESSION {sessionNum}
-          </text>
-        </g>
-      )}
-    </g>
-  );
-}
-
-/* ─── Student marker ─── */
-function StudentMarker({
+/* ─── Rank node (candy style) ─── */
+function RankNode({
   cx,
   cy,
-  pathCx,
-  pathCy,
   entry,
-  onClickAvatar,
+  nodeRadius,
+  onClick,
 }: {
   cx: number;
   cy: number;
-  pathCx: number;
-  pathCy: number;
   entry: LeaderboardEntry;
-  onClickAvatar: (entry: LeaderboardEntry) => void;
+  nodeRadius: number;
+  onClick: () => void;
 }) {
   const [hovered, setHovered] = useState(false);
   const isTop3 = entry.rank <= 3;
-  const r = isTop3 ? 22 : 16;
+  const r = nodeRadius;
   const hue = nameToHue(entry.name);
   const initials = getInitials(entry.name);
-  const gradId = `stu-g-${entry.id}`;
+  const gradId = `rank-grad-${entry.id}`;
+  const clipId = `rank-clip-${entry.id}`;
 
-  const rankColors: Record<number, { ring: string; glow: string }> = {
-    1: { ring: "#FFD700", glow: "rgba(255,215,0,0.3)" },
-    2: { ring: "#C0C0C0", glow: "rgba(192,192,192,0.2)" },
-    3: { ring: "#CD7F32", glow: "rgba(205,127,50,0.2)" },
+  const rankConfigs: Record<number, { outer: string; fill: string; gradLight: string; gradDark: string; stroke: string; shadow: string }> = {
+    1: { outer: "#FFD700", fill: "#FF8C00", gradLight: "#FFBF47", gradDark: "#E07000", stroke: "#CC6600", shadow: "#B85C00" },
+    2: { outer: "#C0C0C0", fill: "#8A8A8A", gradLight: "#D0D0D0", gradDark: "#6A6A6A", stroke: "#555", shadow: "#444" },
+    3: { outer: "#CD7F32", fill: "#A0622A", gradLight: "#D49A56", gradDark: "#8B4513", stroke: "#6B3410", shadow: "#5A2D0E" },
   };
-  const colors = rankColors[entry.rank] || { ring: "#444", glow: "transparent" };
-
-  const isTethered = Math.abs(cx - pathCx) > 5 || Math.abs(cy - pathCy) > 5;
-
-  const tooltipW = 180;
-  const tooltipH = 165;
-  const tooltipX = cx - tooltipW / 2;
-  const tooltipY = cy - r - tooltipH - 18;
+  const c = rankConfigs[entry.rank] || { outer: "#8B7AA0", fill: "#6B5B7B", gradLight: "#9B8AAB", gradDark: "#5A4A6A", stroke: "#4A3A5A", shadow: "#3A2A4A" };
 
   const attendancePoints = entry.sessionsPresent * 10;
+  const tooltipW = 180;
+  const tooltipH = 165;
+  const tooltipX = Math.max(5, Math.min(515 - tooltipW, cx - tooltipW / 2));
+  const tooltipY = cy - r - tooltipH - 20;
 
   return (
     <g>
       <g
         className={`${entry.rank === 1 ? "animate-bounce-node" : ""} cursor-pointer`}
+        onClick={onClick}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         onTouchStart={() => setHovered(true)}
         onTouchEnd={() => setHovered(false)}
-        onClick={() => onClickAvatar(entry)}
       >
-          <defs>
-            <radialGradient id={gradId} cx="35%" cy="30%" r="65%">
-              <stop offset="0%" stopColor={`hsl(${hue}, 50%, 55%)`} />
-              <stop offset="100%" stopColor={`hsl(${hue}, 55%, 30%)`} />
-            </radialGradient>
-            <clipPath id={`clip-${entry.id}`}>
-              <circle cx={cx} cy={cy} r={r} />
-            </clipPath>
-          </defs>
+        <defs>
+          <radialGradient id={gradId} cx="35%" cy="30%" r="65%">
+            <stop offset="0%" stopColor={c.gradLight} />
+            <stop offset="70%" stopColor={c.fill} />
+            <stop offset="100%" stopColor={c.gradDark} />
+          </radialGradient>
+          <clipPath id={clipId}>
+            <circle cx={cx} cy={cy} r={r - 2} />
+          </clipPath>
+        </defs>
 
-          {/* Tether */}
-          {isTethered && (
-            <line x1={pathCx} y1={pathCy} x2={cx} y2={cy} stroke="rgba(196,162,101,0.15)" strokeWidth={1} strokeDasharray="4 4" />
-          )}
+        {/* Hit area */}
+        <circle cx={cx} cy={cy} r={r + 14} fill="transparent" />
 
-          {/* Outer glow rings for top 3 */}
-          {isTop3 && (
-            <>
-              <circle cx={cx} cy={cy} r={r + 14} fill="none" stroke={colors.ring} strokeWidth={1} opacity={0.1} />
-              <circle cx={cx} cy={cy} r={r + 8} fill={colors.glow} />
-              <circle cx={cx} cy={cy} r={r + 8} fill="none" stroke={colors.ring} strokeWidth={1.5} opacity={0.3} className="animate-pulse-glow" />
-            </>
-          )}
+        {/* Crown / trophy for top 3 */}
+        {entry.rank === 1 && (
+          <text x={cx} y={cy - r - 14} textAnchor="middle" fontSize={16}>&#x1F451;</text>
+        )}
 
-          {/* Crown for #1 */}
-          {entry.rank === 1 && (
-            <text x={cx} y={cy - r - 12} textAnchor="middle" fontSize={18}>
-              &#x1F451;
-            </text>
-          )}
+        {/* Glow ring for top 3 */}
+        {isTop3 && (
+          <circle cx={cx} cy={cy} r={r + 10} fill="none" stroke={c.outer} strokeWidth={2} opacity={0.4} className="animate-pulse-glow" />
+        )}
 
-          {/* Shadow */}
-          <ellipse cx={cx} cy={cy + r + 4} rx={r * 0.6} ry={3} fill="rgba(0,0,0,0.4)" />
+        {/* Shadow underneath */}
+        <ellipse cx={cx} cy={cy + r + 3} rx={r * 0.6} ry={3} fill={c.shadow} opacity={0.3} />
 
-          {/* Ring */}
-          <circle cx={cx} cy={cy} r={r + 3} fill={colors.ring} />
+        {/* Outer ring (candy border) */}
+        <circle cx={cx} cy={cy} r={r + 3} fill={c.outer} stroke={c.stroke} strokeWidth={1.5} />
 
-          {/* Avatar fallback */}
-          <circle cx={cx} cy={cy} r={r} fill={`url(#${gradId})`} />
+        {/* Main glossy circle */}
+        <circle cx={cx} cy={cy} r={r} fill={`url(#${gradId})`} stroke={c.stroke} strokeWidth={2} />
 
-          {/* Avatar image */}
-          <image
-            href={getDiceBearUrl(entry.slug)}
-            x={cx - r}
-            y={cy - r}
-            width={r * 2}
-            height={r * 2}
-            clipPath={`url(#clip-${entry.id})`}
-            preserveAspectRatio="xMidYMid slice"
-          />
+        {/* Avatar image */}
+        <image
+          href={entry.avatarUrl || `https://api.dicebear.com/9.x/adventurer/svg?seed=${encodeURIComponent(entry.slug)}`}
+          x={cx - r + 2}
+          y={cy - r + 2}
+          width={(r - 2) * 2}
+          height={(r - 2) * 2}
+          clipPath={`url(#${clipId})`}
+          preserveAspectRatio="xMidYMid slice"
+        />
 
-          {/* Rank badge */}
-          <circle cx={cx + r - 2} cy={cy + r - 2} r={isTop3 ? 9 : 8} fill={isTop3 ? colors.ring : "#222"} stroke="#0A0A0A" strokeWidth={2} />
-          <text x={cx + r - 2} y={cy + r - 1} textAnchor="middle" dominantBaseline="central" fill={isTop3 ? "#1A1A1A" : "#999"} fontSize={8} fontWeight={900} fontFamily="Inter, system-ui, sans-serif">
-            {entry.rank}
-          </text>
+        {/* Shine highlight */}
+        <ellipse cx={cx - r * 0.25} cy={cy - r * 0.3} rx={r * 0.35} ry={r * 0.25} fill="white" opacity={0.2} transform={`rotate(-20 ${cx - r * 0.25} ${cy - r * 0.3})`} />
 
-          {/* Score tag below avatar */}
-          <rect x={cx - 20} y={cy + r + 8} width={40} height={16} rx={8} fill="rgba(196,162,101,0.15)" stroke="rgba(196,162,101,0.3)" strokeWidth={0.5} />
-          <text x={cx} y={cy + r + 17} textAnchor="middle" dominantBaseline="central" fill="#C4A265" fontSize={7} fontWeight={700} fontFamily="Inter, system-ui, sans-serif">
-            {entry.score}pt
-          </text>
+        {/* Rank badge */}
+        <circle cx={cx + r - 1} cy={cy + r - 1} r={isTop3 ? 9 : 7} fill={isTop3 ? c.outer : "#222"} stroke="#0A0A0A" strokeWidth={1.5} />
+        <text x={cx + r - 1} y={cy + r} textAnchor="middle" dominantBaseline="central" fill={isTop3 ? "#1A1A1A" : "#999"} fontSize={isTop3 ? 8 : 7} fontWeight={900} fontFamily="Inter, system-ui, sans-serif">
+          {entry.rank}
+        </text>
 
-          {/* Hit area */}
-          <circle cx={cx} cy={cy} r={r + 14} fill="transparent" />
-        </g>
+        {/* Name + score tag below */}
+        <text x={cx} y={cy + r + 14} textAnchor="middle" dominantBaseline="central" fill="white" fontSize={isTop3 ? 9 : 8} fontWeight={700} fontFamily="Inter, system-ui, sans-serif" opacity={0.9}>
+          {entry.name.length > 10 ? entry.name.slice(0, 9) + "..." : entry.name}
+        </text>
+        <text x={cx} y={cy + r + 26} textAnchor="middle" dominantBaseline="central" fill="#C4A265" fontSize={7} fontWeight={700} fontFamily="Inter, system-ui, sans-serif">
+          {entry.score}pt
+        </text>
 
-      {/* ─── Hover tooltip ─── */}
+        {/* Stars for top 3 */}
+        {isTop3 && (
+          <g>
+            {Array.from({ length: 4 - entry.rank }).map((_, si) => (
+              <polygon key={si} points={starPoints(cx - 10 + si * 10, cy - r - 6, 4)} fill="#FFD700" stroke="#CC8800" strokeWidth={0.5} />
+            ))}
+          </g>
+        )}
+      </g>
+
+      {/* Hover tooltip */}
       {hovered && (
-        <foreignObject
-          x={tooltipX}
-          y={tooltipY}
-          width={tooltipW}
-          height={tooltipH}
-          style={{ pointerEvents: "none", overflow: "visible" }}
-        >
-          <div
-            style={{
-              background: "linear-gradient(135deg, #1A1A1A 0%, #111 100%)",
-              borderRadius: 16,
-              padding: "14px 16px",
-              color: "white",
-              fontFamily: "Inter, system-ui, sans-serif",
-              border: `1.5px solid ${isTop3 ? colors.ring : "#333"}`,
-              boxShadow: `0 16px 40px rgba(0,0,0,0.6), 0 0 20px ${isTop3 ? colors.glow : "transparent"}`,
-            }}
-          >
+        <foreignObject x={tooltipX} y={tooltipY} width={tooltipW} height={tooltipH} style={{ pointerEvents: "none", overflow: "visible" }}>
+          <div style={{
+            background: "linear-gradient(135deg, #1A1A1A 0%, #111 100%)",
+            borderRadius: 16, padding: "14px 16px", color: "white",
+            fontFamily: "Inter, system-ui, sans-serif",
+            border: `1.5px solid ${isTop3 ? c.outer : "#333"}`,
+            boxShadow: `0 16px 40px rgba(0,0,0,0.6)`,
+          }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
               <div style={{
                 width: 28, height: 28, borderRadius: "50%",
                 background: `hsl(${hue}, 50%, 40%)`,
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: 11, fontWeight: 800, color: "white",
-                border: `2px solid ${isTop3 ? colors.ring : "#444"}`,
-              }}>
-                {initials}
-              </div>
+                border: `2px solid ${isTop3 ? c.outer : "#444"}`,
+              }}>{initials}</div>
               <div>
-                <div style={{ fontSize: 12, fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {entry.name}
-                </div>
+                <div style={{ fontSize: 12, fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{entry.name}</div>
                 <div style={{ fontSize: 9, color: "#666" }}>Rank #{entry.rank}</div>
               </div>
             </div>
@@ -345,10 +276,10 @@ function StudentMarker({
                   <span style={{ fontWeight: 700, color: "#FBBF24" }}>{entry.manualPoints} pts</span>
                 </div>
               )}
-              {entry.weeklyGain > 0 && (
+              {entry.streak > 0 && (
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10 }}>
-                  <span style={{ color: "#8B7355" }}>This week</span>
-                  <span style={{ fontWeight: 700, color: "#4ADE80" }}>+{entry.weeklyGain}</span>
+                  <span style={{ color: "#8B7355" }}>Streak</span>
+                  <span style={{ fontWeight: 700, color: "#FF8C00" }}>&#x1F525; {entry.streak}</span>
                 </div>
               )}
               <div style={{ borderTop: "1px solid #2A2A2A", marginTop: 4, paddingTop: 6, display: "flex", justifyContent: "space-between", fontSize: 13 }}>
@@ -356,14 +287,6 @@ function StudentMarker({
                 <span style={{ fontWeight: 900, color: "#C4A265" }}>{entry.score} pts</span>
               </div>
             </div>
-            <div style={{
-              position: "absolute", bottom: -6, left: "50%",
-              transform: "translateX(-50%) rotate(45deg)",
-              width: 10, height: 10,
-              background: "#111",
-              borderRight: `1.5px solid ${isTop3 ? colors.ring : "#333"}`,
-              borderBottom: `1.5px solid ${isTop3 ? colors.ring : "#333"}`,
-            }} />
           </div>
         </foreignObject>
       )}
@@ -372,106 +295,105 @@ function StudentMarker({
 }
 
 /* ─── Main ─── */
-export default function LeaderboardClient({ entries, totalSessions }: Props) {
+export default function LeaderboardClient({ entries }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const svgContainerRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+  const weekLabel = getWeekLabel();
 
-  const mapWidth = 580;
-  const nodeSpacingY = 110;
+  // Responsive width measurement
+  const [containerWidth, setContainerWidth] = useState(520);
+  useEffect(() => {
+    const el = svgContainerRef.current;
+    if (!el) return;
+    const update = () => setContainerWidth(el.offsetWidth);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const isNarrow = containerWidth < 400;
+  const count = entries.length;
+
+  // Scale spacing based on student count to keep map manageable
+  const mapWidth = 520;
+  const nodeSpacingY = count > 60 ? 55 : count > 30 ? 70 : count > 15 ? 85 : 100;
+  const nodeRadius = count > 60 ? 16 : count > 30 ? 20 : count > 15 ? 24 : 28;
   const centerX = mapWidth / 2;
-  const amplitude = 100;
-  const topPadding = 140;
-  const bottomPadding = 140;
+  const amplitude = isNarrow ? 100 : 130;
+  const topPadding = 130;
+  const bottomPadding = 120;
 
-  const pointsStep = 10;
-  const safeTotalSessions = Number(totalSessions) || 0;
-  const maxScore = entries.length > 0 ? Math.max(...entries.map((e) => Number(e.score) || 0)) : 0;
-  const topMilestoneIndex = Math.max(safeTotalSessions, Math.ceil(maxScore / pointsStep), 5);
-  const milestoneCount = topMilestoneIndex + 1;
-  const totalHeight = topPadding + milestoneCount * nodeSpacingY + bottomPadding;
+  // Sort by rank descending (worst rank at bottom, rank 1 at top)
+  const sorted = useMemo(() => [...entries].sort((a, b) => b.rank - a.rank), [entries]);
 
-  const milestones = useMemo(() => {
-    return Array.from({ length: milestoneCount }, (_, i) => {
-      const cy = totalHeight - bottomPadding - i * nodeSpacingY;
-      const cx = centerX + Math.sin((i * Math.PI) / 2.2) * amplitude;
-      return { sessionNum: i, cx, cy };
+  const totalHeight = topPadding + Math.max(count, 1) * nodeSpacingY + bottomPadding;
+
+  // Position each student along the sine wave road
+  const nodes = useMemo(() => {
+    return sorted.map((entry, index) => {
+      const cy = totalHeight - bottomPadding - index * nodeSpacingY;
+      const cx = centerX + Math.sin((index * Math.PI) / 2.2 - Math.PI / 2) * amplitude;
+      return { ...entry, cx, cy };
     });
-  }, [milestoneCount, totalHeight, centerX, amplitude, bottomPadding, nodeSpacingY]);
-
-  const studentPositions = useMemo(() => {
-    // Instead of clustering at exact score positions, distribute students
-    // evenly along the road based on their rank order. This prevents
-    // overlapping when many students have similar scores.
-    const sorted = [...entries].sort((a, b) => b.rank - a.rank); // worst rank first (bottom), best rank last (top)
-    const count = sorted.length;
-
-    if (count === 0 || milestones.length < 2) {
-      return sorted.map((entry) => ({
-        ...entry,
-        displayCx: centerX,
-        displayCy: totalHeight - bottomPadding,
-        pathCx: centerX,
-        pathCy: totalHeight - bottomPadding,
-      }));
-    }
-
-    // Spread students evenly across the first N milestones proportional to their rank
-    // Rank 1 = furthest along the road, last rank = near start
-    const maxMilestoneIdx = milestones.length - 1;
-
-    return sorted.map((entry, i) => {
-      // Map rank-ordered index to a position along the milestones
-      // i=0 is worst rank (near start), i=count-1 is rank 1 (near top)
-      const t = count === 1 ? 0.5 : i / (count - 1);
-      // Use up to 80% of the road so students don't crowd the very top/bottom
-      const milestoneIdx = t * maxMilestoneIdx * 0.8;
-      const lowerIdx = Math.min(Math.floor(milestoneIdx), maxMilestoneIdx - 1);
-      const upperIdx = lowerIdx + 1;
-      const fraction = milestoneIdx - lowerIdx;
-      const lower = milestones[lowerIdx];
-      const upper = milestones[upperIdx];
-
-      const pathCx = lower.cx + (upper.cx - lower.cx) * fraction;
-      const pathCy = lower.cy + (upper.cy - lower.cy) * fraction;
-
-      // Offset slightly left/right of the road based on even/odd index
-      const side = i % 2 === 0 ? -1 : 1;
-      const offsetX = entry.rank <= 3 ? 0 : side * 30; // top 3 stay on the road
-
-      return {
-        ...entry,
-        displayCx: Math.max(50, Math.min(mapWidth - 50, pathCx + offsetX)),
-        displayCy: pathCy,
-        pathCx,
-        pathCy,
-      };
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entries, milestones]);
+  }, [sorted, totalHeight, centerX, amplitude, bottomPadding, nodeSpacingY]);
 
   function buildRoadPath(x1: number, y1: number, x2: number, y2: number): string {
     const dy = (y2 - y1) * 0.4;
     return `M${x1},${y1} C${x1},${y1 + dy} ${x2},${y2 - dy} ${x2},${y2}`;
   }
 
-  useEffect(() => {
-    if (containerRef.current && studentPositions.length > 0) {
-      const leader = studentPositions.find((s) => s.rank === 1);
-      if (leader) {
-        containerRef.current.scrollTo({
-          top: Math.max(0, leader.displayCy - window.innerHeight / 2),
-          behavior: "smooth",
-        });
-      }
+  // Candy decorations (spaced out to avoid clutter)
+  const decorations = useMemo(() => {
+    function seededRandom(seed: number): number {
+      const x = Math.sin(seed * 9301 + 49297) * 49297;
+      return x - Math.floor(x);
     }
-  }, [studentPositions]);
 
-  const weekLabel = getWeekLabel();
-  const router = useRouter();
+    const decos: React.ReactNode[] = [];
+    const step = count > 50 ? 6 : count > 20 ? 4 : 3;
+    nodes.forEach((node, i) => {
+      if (i % step !== 0) return;
+      const side = i % 2 === 0 ? 1 : -1;
+      const offsetX = side * (70 + seededRandom(i) * 30);
+
+      if (i % (step * 2) === 0) {
+        const colors = ["#C4A265", "#FFD700", "#4ADE80", "#A78BFA"];
+        decos.push(
+          <Lollipop key={`lollipop-${i}`} x={node.cx + offsetX} y={node.cy - 15} color={colors[i % colors.length]} size={0.7 + seededRandom(i + 100) * 0.3} />
+        );
+      }
+      if (i % (step * 2) === step) {
+        decos.push(
+          <CandyCane key={`cane-${i}`} x={node.cx + offsetX * 0.7} y={node.cy - 8} flip={side < 0} />
+        );
+      }
+      decos.push(
+        <Star4 key={`star-${i}`} x={node.cx + offsetX * 0.4} y={node.cy - 25 - seededRandom(i + 200) * 15} size={4 + seededRandom(i + 300) * 3} color={i % 2 === 0 ? "#C4A265" : "#FFD700"} />
+      );
+    });
+    return decos;
+  }, [nodes, count]);
+
+  // Scroll to rank 1 on mount
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || nodes.length === 0) return;
+    const leader = nodes.find((n) => n.rank === 1);
+    if (!leader) return;
+    const svgEl = container.querySelector("svg");
+    if (!svgEl) return;
+    const scale = svgEl.clientHeight / totalHeight;
+    const nodePixelY = leader.cy * scale;
+    const scrollTarget = nodePixelY - container.clientHeight / 2;
+    container.scrollTo({ top: Math.max(0, scrollTarget), behavior: "smooth" });
+  }, [nodes, totalHeight]);
 
   // View mode toggle
-  const [viewMode, setViewMode] = useState<"map" | "table">("table");
+  const [viewMode, setViewMode] = useState<"map" | "ranking">("ranking");
 
-  // Slug verification modal state
+  // Slug verification modal
   const [selectedStudent, setSelectedStudent] = useState<LeaderboardEntry | null>(null);
   const [slugInput, setSlugInput] = useState("");
   const [slugError, setSlugError] = useState("");
@@ -487,18 +409,9 @@ export default function LeaderboardClient({ entries, totalSessions }: Props) {
     e.preventDefault();
     if (!selectedStudent) return;
     setSlugError("");
-
     const trimmed = slugInput.trim().toLowerCase();
-    if (!trimmed) {
-      setSlugError("Please enter your student ID");
-      return;
-    }
-
-    if (trimmed !== selectedStudent.slug) {
-      setSlugError("Incorrect student ID. Access denied.");
-      return;
-    }
-
+    if (!trimmed) { setSlugError("Please enter your student ID"); return; }
+    if (trimmed !== selectedStudent.slug) { setSlugError("Incorrect student ID. Access denied."); return; }
     setSlugLoading(true);
     router.push(`/student/${selectedStudent.slug}`);
   }
@@ -509,8 +422,8 @@ export default function LeaderboardClient({ entries, totalSessions }: Props) {
 
       <div className="relative z-10 flex flex-col items-center min-h-screen">
         {/* Header */}
-        <div className="pt-8 pb-4 text-center relative z-20 w-full max-w-lg px-4">
-          <div className="inline-block px-10 py-5 rounded-2xl bg-[#131313] border border-[#2A2A2A] shadow-2xl relative overflow-hidden">
+        <div className="pt-6 pb-2 text-center relative z-20 px-4 w-full max-w-[560px]">
+          <div className="inline-block px-10 py-5 rounded-2xl bg-[#1A1A1A] border border-[#333] shadow-2xl relative overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#C4A265] to-transparent opacity-30" />
             <h1 className="text-2xl font-extrabold text-white tracking-wide relative z-10">
               The Race Is On
@@ -521,8 +434,8 @@ export default function LeaderboardClient({ entries, totalSessions }: Props) {
           {/* View Toggle */}
           <div className="flex items-center justify-center gap-1 mt-4 bg-[#131313] border border-[#2A2A2A] rounded-xl p-1 w-fit mx-auto">
             <button
-              onClick={() => setViewMode("table")}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition cursor-pointer ${viewMode === "table" ? "bg-[#C4A265] text-[#1A1A1A]" : "text-[#666] hover:text-white"}`}
+              onClick={() => setViewMode("ranking")}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition cursor-pointer ${viewMode === "ranking" ? "bg-[#C4A265] text-[#1A1A1A]" : "text-[#666] hover:text-white"}`}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 20V10M12 20V4M6 20v-6" /></svg>
               Ranking
@@ -537,100 +450,93 @@ export default function LeaderboardClient({ entries, totalSessions }: Props) {
           </div>
         </div>
 
-        {/* ─── TABLE VIEW ─── */}
-        {viewMode === "table" && (
-          <div className="flex-1 w-full max-w-lg px-4 pb-6 overflow-y-auto" style={{ maxHeight: "calc(100vh - 220px)" }}>
-            {entries.length === 0 ? (
+        {/* ─── RANKING VIEW ─── */}
+        {viewMode === "ranking" && (
+          <div className="flex-1 w-full max-w-lg px-3 sm:px-4 pb-6 overflow-y-auto candy-scroll" style={{ maxHeight: "calc(100dvh - 200px)" }}>
+            {count === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 gap-3">
                 <span className="text-4xl">&#x1F3C1;</span>
                 <p className="text-[#555] text-lg font-medium">No students yet</p>
               </div>
             ) : (
               <>
-                {/* ─── Podium Top 3 ─── */}
-                {entries.length >= 1 && (
-                  <div className="flex items-end justify-center gap-3 mb-6 pt-4">
+                {/* Podium Top 3 */}
+                {count >= 1 && (
+                  <div className="flex items-end justify-center gap-2 sm:gap-3 mb-5 pt-4 px-2">
                     {/* 2nd place */}
-                    {entries.length >= 2 && (
-                      <div className="flex flex-col items-center cursor-pointer" onClick={() => handleAvatarClick(entries[1])}>
-                        <div className="relative mb-2">
-                          <div className="w-14 h-14 rounded-full overflow-hidden" style={{ boxShadow: "0 0 0 3px #C0C0C0, 0 0 0 5px #131313" }}>
+                    {count >= 2 && (
+                      <div className="flex flex-col items-center cursor-pointer flex-1 max-w-[110px]" onClick={() => handleAvatarClick(entries[1])}>
+                        <div className="relative mb-1.5">
+                          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden" style={{ boxShadow: "0 0 0 3px #C0C0C0, 0 0 0 5px #131313" }}>
                             <StudentAvatar slug={entries[1].slug} name={entries[1].name} size={56} avatarUrl={entries[1].avatarUrl} />
                           </div>
                         </div>
-                        <p className="text-white text-[11px] font-bold truncate max-w-[80px]">{entries[1].name}</p>
-                        <p className="text-[#C4A265] text-[10px] font-semibold">{entries[1].score} pts</p>
-                        <div className="w-20 mt-2 rounded-t-xl bg-gradient-to-t from-[#7A7A7A] to-[#C0C0C0] flex items-center justify-center pt-3 pb-4">
-                          <span className="text-white text-2xl font-black">2</span>
+                        <p className="text-white text-[10px] sm:text-[11px] font-bold truncate w-full text-center">{entries[1].name}</p>
+                        <p className="text-[#C4A265] text-[9px] sm:text-[10px] font-semibold">{entries[1].score} pts</p>
+                        <div className="w-full mt-1.5 rounded-t-xl bg-gradient-to-t from-[#7A7A7A] to-[#C0C0C0] flex items-center justify-center pt-3 pb-4">
+                          <span className="text-white text-xl sm:text-2xl font-black">2</span>
                         </div>
                       </div>
                     )}
 
                     {/* 1st place */}
-                    <div className="flex flex-col items-center cursor-pointer -mt-4" onClick={() => handleAvatarClick(entries[0])}>
-                      <div className="text-2xl mb-1">&#x1F451;</div>
-                      <div className="relative mb-2">
+                    <div className="flex flex-col items-center cursor-pointer flex-1 max-w-[120px] -mt-4" onClick={() => handleAvatarClick(entries[0])}>
+                      <div className="text-xl sm:text-2xl mb-1">&#x1F451;</div>
+                      <div className="relative mb-1.5">
                         <div className="absolute inset-0 rounded-full blur-lg opacity-40 bg-[#FFD700]" />
-                        <div className="relative w-[72px] h-[72px] rounded-full overflow-hidden" style={{ boxShadow: "0 0 0 3px #FFD700, 0 0 0 5px #131313, 0 0 20px rgba(255,215,0,0.3)" }}>
+                        <div className="relative w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-full overflow-hidden" style={{ boxShadow: "0 0 0 3px #FFD700, 0 0 0 5px #131313, 0 0 20px rgba(255,215,0,0.3)" }}>
                           <StudentAvatar slug={entries[0].slug} name={entries[0].name} size={72} avatarUrl={entries[0].avatarUrl} />
                         </div>
                       </div>
-                      <p className="text-white text-xs font-bold truncate max-w-[90px]">{entries[0].name}</p>
-                      <p className="text-[#C4A265] text-[10px] font-semibold">{entries[0].score} pts</p>
-                      <div className="w-24 mt-2 rounded-t-xl bg-gradient-to-t from-[#B8860B] to-[#FFD700] flex items-center justify-center pt-4 pb-5">
-                        <span className="text-white text-3xl font-black drop-shadow-lg">1</span>
+                      <p className="text-white text-[11px] sm:text-xs font-bold truncate w-full text-center">{entries[0].name}</p>
+                      <p className="text-[#C4A265] text-[9px] sm:text-[10px] font-semibold">{entries[0].score} pts</p>
+                      <div className="w-full mt-1.5 rounded-t-xl bg-gradient-to-t from-[#B8860B] to-[#FFD700] flex items-center justify-center pt-4 pb-5">
+                        <span className="text-white text-2xl sm:text-3xl font-black drop-shadow-lg">1</span>
                       </div>
                     </div>
 
                     {/* 3rd place */}
-                    {entries.length >= 3 && (
-                      <div className="flex flex-col items-center cursor-pointer" onClick={() => handleAvatarClick(entries[2])}>
-                        <div className="relative mb-2">
-                          <div className="w-14 h-14 rounded-full overflow-hidden" style={{ boxShadow: "0 0 0 3px #CD7F32, 0 0 0 5px #131313" }}>
+                    {count >= 3 && (
+                      <div className="flex flex-col items-center cursor-pointer flex-1 max-w-[110px]" onClick={() => handleAvatarClick(entries[2])}>
+                        <div className="relative mb-1.5">
+                          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden" style={{ boxShadow: "0 0 0 3px #CD7F32, 0 0 0 5px #131313" }}>
                             <StudentAvatar slug={entries[2].slug} name={entries[2].name} size={56} avatarUrl={entries[2].avatarUrl} />
                           </div>
                         </div>
-                        <p className="text-white text-[11px] font-bold truncate max-w-[80px]">{entries[2].name}</p>
-                        <p className="text-[#C4A265] text-[10px] font-semibold">{entries[2].score} pts</p>
-                        <div className="w-20 mt-2 rounded-t-xl bg-gradient-to-t from-[#8B4513] to-[#CD7F32] flex items-center justify-center pt-2 pb-3">
-                          <span className="text-white text-xl font-black">3</span>
+                        <p className="text-white text-[10px] sm:text-[11px] font-bold truncate w-full text-center">{entries[2].name}</p>
+                        <p className="text-[#C4A265] text-[9px] sm:text-[10px] font-semibold">{entries[2].score} pts</p>
+                        <div className="w-full mt-1.5 rounded-t-xl bg-gradient-to-t from-[#8B4513] to-[#CD7F32] flex items-center justify-center pt-2 pb-3">
+                          <span className="text-white text-lg sm:text-xl font-black">3</span>
                         </div>
                       </div>
                     )}
                   </div>
                 )}
 
-                {/* ─── Remaining players list ─── */}
-                <div className="space-y-2">
+                {/* Remaining players list */}
+                <div className="space-y-1.5 sm:space-y-2">
                   {entries.slice(3).map((entry) => (
                     <div
                       key={entry.id}
                       onClick={() => handleAvatarClick(entry)}
-                      className="flex items-center gap-3 bg-[#131313] border border-[#1E1E1E] rounded-2xl px-4 py-3 hover:border-[#2A2A2A] hover:bg-[#161616] transition cursor-pointer group"
+                      className="flex items-center gap-2 sm:gap-3 bg-[#131313] border border-[#1E1E1E] rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 hover:border-[#2A2A2A] hover:bg-[#161616] transition cursor-pointer group active:scale-[0.98]"
                     >
-                      {/* Rank */}
-                      <span className="text-[#555] text-sm font-bold w-6 text-center">{entry.rank}</span>
-
-                      {/* Avatar */}
-                      <StudentAvatar slug={entry.slug} name={entry.name} size={40} className="rounded-xl" avatarUrl={entry.avatarUrl} />
-
-                      {/* Name */}
+                      <span className="text-[#555] text-xs sm:text-sm font-bold w-5 sm:w-6 text-center shrink-0">{entry.rank}</span>
+                      <div className="shrink-0 w-9 h-9 sm:w-10 sm:h-10">
+                        <StudentAvatar slug={entry.slug} name={entry.name} size={40} className="rounded-xl w-full h-full" avatarUrl={entry.avatarUrl} />
+                      </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-white text-sm font-semibold truncate group-hover:text-[#C4A265] transition">{entry.name}</p>
+                        <p className="text-white text-xs sm:text-sm font-semibold truncate group-hover:text-[#C4A265] transition">{entry.name}</p>
                         {entry.streak > 0 && (
-                          <p className="text-[#4ADE80] text-[10px] font-medium">&#x1F525; {entry.streak} streak</p>
+                          <p className="text-[#4ADE80] text-[9px] sm:text-[10px] font-medium">&#x1F525; {entry.streak} streak</p>
                         )}
                       </div>
-
-                      {/* Score */}
                       <div className="text-right shrink-0">
-                        <p className="text-[#C4A265] text-sm font-bold">{entry.score}</p>
-                        <p className="text-[#444] text-[10px]">pts</p>
+                        <p className="text-[#C4A265] text-xs sm:text-sm font-bold">{entry.score}</p>
+                        <p className="text-[#444] text-[9px] sm:text-[10px]">pts</p>
                       </div>
-
-                      {/* Weekly gain */}
                       {entry.weeklyGain > 0 && (
-                        <span className="text-[#4ADE80] text-[10px] font-bold bg-[#4ADE80]/10 px-2 py-0.5 rounded-full shrink-0">
+                        <span className="text-[#4ADE80] text-[9px] sm:text-[10px] font-bold bg-[#4ADE80]/10 px-1.5 sm:px-2 py-0.5 rounded-full shrink-0 hidden xs:inline">
                           +{entry.weeklyGain}
                         </span>
                       )}
@@ -638,7 +544,7 @@ export default function LeaderboardClient({ entries, totalSessions }: Props) {
                   ))}
                 </div>
 
-                {entries.length <= 3 && entries.length > 0 && (
+                {count <= 3 && count > 0 && (
                   <p className="text-center text-[#333] text-xs mt-6">More players will appear here as they join</p>
                 )}
               </>
@@ -648,102 +554,111 @@ export default function LeaderboardClient({ entries, totalSessions }: Props) {
 
         {/* ─── MAP VIEW ─── */}
         {viewMode === "map" && (
-          <div ref={containerRef} className="flex-1 overflow-y-auto w-full flex justify-center" style={{ maxHeight: "calc(100vh - 220px)" }}>
-            {entries.length === 0 ? (
+        <div
+          ref={containerRef}
+          className="flex-1 overflow-y-auto w-full flex justify-center candy-scroll"
+          style={{ maxHeight: "calc(100vh - 200px)" }}
+        >
+          <div ref={svgContainerRef} className="w-full max-w-[520px] px-2">
+            {count === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 gap-3">
                 <span className="text-4xl">&#x1F3C1;</span>
                 <p className="text-[#555] text-lg font-medium">No students yet</p>
               </div>
             ) : (
-              <svg viewBox={`0 0 ${mapWidth} ${totalHeight}`} preserveAspectRatio="xMidYMin meet" className="block w-full max-w-[580px]">
-                <Particles width={mapWidth} height={totalHeight} />
+              <svg
+                viewBox={`0 0 ${mapWidth} ${totalHeight}`}
+                preserveAspectRatio="xMidYMin meet"
+                className="w-full block"
+              >
+                <CandyLandscape width={mapWidth} height={totalHeight} />
 
-                {milestones.map((ms, i) => {
-                  if (i === 0) return null;
-                  const prev = milestones[i - 1];
-                  const d = buildRoadPath(prev.cx, prev.cy, ms.cx, ms.cy);
+                {/* START badge at bottom */}
+                <g>
+                  <rect x={centerX - 35} y={totalHeight - bottomPadding + 40} width={70} height={24} rx={12} fill="#C4A265" />
+                  <text x={centerX} y={totalHeight - bottomPadding + 53} textAnchor="middle" dominantBaseline="central" fill="#1A1A1A" fontSize={10} fontWeight={900} fontFamily="Inter, system-ui, sans-serif" letterSpacing="1">
+                    START
+                  </text>
+                </g>
+
+                {/* FINISH / Trophy at top */}
+                {nodes.length > 0 && (() => {
+                  const topNode = nodes[nodes.length - 1];
                   return (
-                    <g key={`road-${i}`}>
-                      <path d={d} fill="none" stroke="#C4A265" strokeWidth={34} strokeLinecap="round" opacity={0.03} />
-                      <path d={d} fill="none" stroke="rgba(0,0,0,0.5)" strokeWidth={30} strokeLinecap="round" />
-                      <path d={d} fill="none" stroke="#1A1A1A" strokeWidth={26} strokeLinecap="round" />
-                      <path d={d} fill="none" stroke="#C4A265" strokeWidth={28} strokeLinecap="round" opacity={0.04} />
-                      <path d={d} fill="none" stroke="#C4A265" strokeWidth={1.5} strokeLinecap="round" strokeDasharray="14 10" opacity={0.2} />
-                      <path d={d} fill="none" stroke="#C4A265" strokeWidth={2} strokeLinecap="round" strokeDasharray="4 20" opacity={0.1} className="animate-road-dash" />
+                    <g>
+                      <text x={topNode.cx} y={topNode.cy - nodeRadius - 50} textAnchor="middle" fontSize={22}>&#x1F3C6;</text>
+                      <rect x={topNode.cx - 40} y={topNode.cy - nodeRadius - 80} width={80} height={22} rx={11} fill="#C4A265" />
+                      <text x={topNode.cx} y={topNode.cy - nodeRadius - 68} textAnchor="middle" dominantBaseline="central" fill="#1A1A1A" fontSize={8} fontWeight={900} fontFamily="Inter, system-ui, sans-serif" letterSpacing="0.5">
+                        LEADERBOARD
+                      </text>
+                    </g>
+                  );
+                })()}
+
+                {/* Road segments */}
+                {nodes.map((node, i) => {
+                  if (i === 0) return null;
+                  const prev = nodes[i - 1];
+                  const d = buildRoadPath(prev.cx, prev.cy, node.cx, node.cy);
+                  return (
+                    <g key={`road-${node.id}`}>
+                      <path d={d} fill="none" stroke="rgba(0,0,0,0.6)" strokeWidth={32} strokeLinecap="round" />
+                      <path d={d} fill="none" stroke="#3A3A3A" strokeWidth={24} strokeLinecap="round" />
+                      <path d={d} fill="none" stroke="#C4A265" strokeWidth={26} strokeLinecap="round" opacity={0.1} />
+                      <path d={d} fill="none" stroke="#4A4A4A" strokeWidth={24} strokeLinecap="round" opacity={0.25} />
+                      <path d={d} fill="none" stroke="#C4A265" strokeWidth={1.5} strokeLinecap="round" strokeDasharray="14 10" opacity={0.4} className="animate-road-dash" />
                     </g>
                   );
                 })}
 
-                {milestones.map((ms, i) => (
-                  <MilestoneNode key={ms.sessionNum} cx={ms.cx} cy={ms.cy} sessionNum={ms.sessionNum} isStart={i === 0} isTop={i === milestones.length - 1} />
-                ))}
+                {/* Decorations */}
+                {decorations}
 
-                {[...studentPositions]
-                  .sort((a, b) => b.rank - a.rank)
-                  .map((sp) => (
-                    <StudentMarker
-                      key={sp.id}
-                      cx={sp.displayCx}
-                      cy={sp.displayCy}
-                      pathCx={sp.pathCx}
-                      pathCy={sp.pathCy}
-                      entry={sp}
-                      onClickAvatar={handleAvatarClick}
-                    />
-                  ))}
+                {/* Student nodes (render worst rank first so top ranks are on top) */}
+                {nodes.map((node) => (
+                  <RankNode
+                    key={node.id}
+                    cx={node.cx}
+                    cy={node.cy}
+                    entry={node}
+                    nodeRadius={nodeRadius}
+                    onClick={() => handleAvatarClick(node)}
+                  />
+                ))}
               </svg>
             )}
           </div>
+        </div>
         )}
 
-        <div className="py-4 relative z-20">
+        <div className="py-3 relative z-20">
           <Link href="/" className="text-[#444] text-sm hover:text-[#C4A265] transition">Back to Home</Link>
         </div>
       </div>
 
-      {/* ─── Slug Verification Modal ─── */}
+      {/* Slug Verification Modal */}
       {selectedStudent && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setSelectedStudent(null)}>
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-[420px] mx-4 px-8 py-8" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-2xl font-bold text-[#1A1A1A] mb-6">Access Dashboard</h2>
-
             <form onSubmit={handleSlugSubmit} className="space-y-6">
               {slugError && (
-                <div className="bg-red-50 text-red-600 text-sm p-3 rounded-2xl">
-                  {slugError}
-                </div>
+                <div className="bg-red-50 text-red-600 text-sm p-3 rounded-2xl">{slugError}</div>
               )}
-
               <div>
-                <label className="block text-base font-medium text-[#B8975C] mb-2">
-                  Student ID
-                </label>
+                <label className="block text-base font-medium text-[#B8975C] mb-2">Student ID</label>
                 <input
                   type="text"
                   value={slugInput}
-                  onChange={(e) => {
-                    setSlugInput(e.target.value);
-                    setSlugError("");
-                  }}
+                  onChange={(e) => { setSlugInput(e.target.value); setSlugError(""); }}
                   placeholder="Enter student ID"
                   className="w-full px-5 py-4 border-2 border-[#C4A265] rounded-2xl focus:ring-2 focus:ring-[#C4A265] focus:border-[#C4A265] outline-none transition text-[#1A1A1A] bg-[#FDF8F0] text-base placeholder-[#C4B99A]"
                   autoFocus
                 />
               </div>
-
               <div className="flex gap-4">
-                <button
-                  type="button"
-                  onClick={() => setSelectedStudent(null)}
-                  className="flex-1 py-4 border-2 border-[#E8E0D8] text-[#8B7355] font-medium rounded-2xl hover:bg-[#F5F0EB] transition cursor-pointer text-base"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={slugLoading}
-                  className="flex-1 py-4 bg-[#1A1A1A] text-white font-bold rounded-2xl hover:bg-[#333] transition disabled:opacity-50 cursor-pointer text-base"
-                >
+                <button type="button" onClick={() => setSelectedStudent(null)} className="flex-1 py-4 border-2 border-[#E8E0D8] text-[#8B7355] font-medium rounded-2xl hover:bg-[#F5F0EB] transition cursor-pointer text-base">Cancel</button>
+                <button type="submit" disabled={slugLoading} className="flex-1 py-4 bg-[#1A1A1A] text-white font-bold rounded-2xl hover:bg-[#333] transition disabled:opacity-50 cursor-pointer text-base">
                   {slugLoading ? "Loading..." : "Access Dashboard"}
                 </button>
               </div>

@@ -141,7 +141,7 @@ export default async function LeaderboardPage() {
       const score = att.present * 10 + pts.points + manualPts;
       const weeklyGain = (weeklyAttMap.get(s.id) || 0) + (weeklyChalMap.get(s.id) || 0) + (weeklyManualMap.get(s.id) || 0);
       return {
-        id: s.id, name: s.name, slug: s.slug,
+        id: s.id, name: s.name, slug: s.slug, avatarUrl: s.avatarUrl,
         sessionsPresent: att.present, totalSessions: att.total,
         challengePoints: pts.points, challengesCompleted: pts.completed,
         manualPoints: manualPts, badges: pts.badges,
