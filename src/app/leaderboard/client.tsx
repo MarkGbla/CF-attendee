@@ -7,8 +7,8 @@ import dynamic from "next/dynamic";
 import StudentAvatar from "@/components/ui/StudentAvatar";
 import { getDiceBearUrl } from "@/lib/avatar";
 
-const LeaderboardBackground = dynamic(
-  () => import("@/components/leaderboard/LeaderboardBackground"),
+const ThreeBackground = dynamic(
+  () => import("@/components/student/ThreeBackground"),
   { ssr: false }
 );
 
@@ -505,21 +505,7 @@ export default function LeaderboardClient({ entries, totalSessions }: Props) {
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-[#0A0A0A]">
-      <LeaderboardBackground />
-      {/* Code matrix background */}
-      <div
-        className="fixed inset-0 z-[1] pointer-events-none"
-        style={{
-          backgroundImage: "url(/code-bg.gif)",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          opacity: 0.06,
-          mixBlendMode: "screen",
-        }}
-      />
-      {/* Ambient glow spots */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-[#C4A265] opacity-[0.03] blur-[100px]" />
-      <div className="absolute bottom-1/3 right-1/4 w-80 h-80 rounded-full bg-[#4ADE80] opacity-[0.02] blur-[80px]" />
+      <ThreeBackground />
 
       <div className="relative z-10 flex flex-col items-center min-h-screen">
         {/* Header */}
