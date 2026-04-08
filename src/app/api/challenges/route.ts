@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
       decayEnabled,
       decayStartPoints,
       decayPointsPerInterval,
+      decayIntervalSeconds,
     } = body;
 
     if (!title || !description || !type || !anchorSession) {
@@ -76,6 +77,9 @@ export async function POST(request: NextRequest) {
         decayEnabled: decayEnabled ?? false,
         decayStartPoints: decayEnabled ? (decayStartPoints ?? 40) : 40,
         decayPointsPerInterval: decayEnabled ? (decayPointsPerInterval ?? 1) : 1,
+        decayIntervalSeconds: decayEnabled
+          ? Math.max(1, Number.isFinite(decayIntervalSeconds) ? decayIntervalSeconds : 600)
+          : 600,
       })
       .returning();
 

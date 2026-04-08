@@ -111,6 +111,7 @@ export default async function StudentPage({ params }: Props) {
       decayEnabled: c.decayEnabled,
       decayStartPoints: c.decayStartPoints,
       decayPointsPerInterval: c.decayPointsPerInterval,
+      decayIntervalSeconds: c.decayIntervalSeconds,
       createdAt: c.createdAt.toISOString(),
     },
     progress: progressMap.get(c.id)

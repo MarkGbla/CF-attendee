@@ -83,6 +83,7 @@ export const challenges = pgTable("challenges", {
   decayEnabled: boolean("decay_enabled").notNull().default(false),
   decayStartPoints: integer("decay_start_points").notNull().default(40),
   decayPointsPerInterval: integer("decay_points_per_interval").notNull().default(1),
+  decayIntervalSeconds: integer("decay_interval_seconds").notNull().default(600),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

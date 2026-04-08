@@ -8,6 +8,7 @@ import {
   studentChallengeProgress,
 } from "@/lib/db/schema";
 import { eq, asc, and, sql } from "drizzle-orm";
+import { computeDecayedPoints } from "@/lib/decay";
 
 interface Params {
   params: Promise<{ slug: string; challengeId: string }>;
@@ -147,12 +148,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     if (passed) {
       let earnedPoints = challenge.pointsReward;
       if (challenge.decayEnabled) {
-        const elapsedSec = Math.floor(
-          (Date.now() - new Date(challenge.createdAt).getTime()) / 1000
-        );
-        const intervals = Math.floor(elapsedSec / 600); // 10-minute windows
-        const lost = intervals * challenge.decayPointsPerInterval;
-        earnedPoints = Math.max(0, challenge.decayStartPoints - lost);
+        earnedPoints = computeDecayedPoints(challenge);
       }
 
       await db

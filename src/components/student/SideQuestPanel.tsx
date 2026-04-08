@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { computeDecayedPoints, humanizeInterval } from "@/lib/decay";
 
 interface SideQuestPanelProps {
   open: boolean;
@@ -19,6 +20,7 @@ interface SideQuestPanelProps {
     decayEnabled: boolean;
     decayStartPoints: number;
     decayPointsPerInterval: number;
+    decayIntervalSeconds: number;
     createdAt: string;
   };
   completed: boolean;
@@ -80,17 +82,12 @@ export default function SideQuestPanel({
   useEffect(() => {
     if (!challenge.decayEnabled) return;
     function calculate() {
-      const elapsedSec = Math.floor(
-        (Date.now() - new Date(challenge.createdAt).getTime()) / 1000
-      );
-      const intervals = Math.floor(elapsedSec / 600); // 10-minute windows
-      const lost = intervals * challenge.decayPointsPerInterval;
-      setCurrentDecayPoints(Math.max(0, challenge.decayStartPoints - lost));
+      setCurrentDecayPoints(computeDecayedPoints(challenge));
     }
     calculate();
     const interval = setInterval(calculate, 1000);
     return () => clearInterval(interval);
-  }, [challenge.decayEnabled, challenge.decayStartPoints, challenge.decayPointsPerInterval, challenge.createdAt]);
+  }, [challenge]);
 
   if (!open) return null;
 
@@ -161,7 +158,9 @@ export default function SideQuestPanel({
               <span className="text-xs text-gray-500 font-medium">
                 +{challenge.decayEnabled ? currentDecayPoints : challenge.pointsReward} points
                 {challenge.decayEnabled && (
-                  <span className="text-red-400 ml-1">(decaying)</span>
+                  <span className="text-red-400 ml-1">
+                    (−{challenge.decayPointsPerInterval}/{humanizeInterval(challenge.decayIntervalSeconds)})
+                  </span>
                 )}
               </span>
               {challenge.badgeName && (
@@ -277,17 +276,17 @@ export default function SideQuestPanel({
               <>
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700">
-                    Submission Link
+                    Your Submission
                   </label>
-                  <input
-                    type="url"
+                  <textarea
                     value={taskText}
                     onChange={(e) => setTaskText(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-gray-800"
-                    placeholder="https://github.com/your-repo or drive link..."
+                    rows={4}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-gray-800 resize-y"
+                    placeholder="Type your answer or paste a link..."
                   />
                   <p className="text-xs text-gray-400">
-                    Paste a link to your work (GitHub, Google Drive, etc.)
+                    Enter your answer — text, a link, or anything else.
                   </p>
                 </div>
                 <button

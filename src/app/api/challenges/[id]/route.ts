@@ -61,6 +61,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
         ...(body.decayEnabled !== undefined && { decayEnabled: body.decayEnabled }),
         ...(body.decayStartPoints !== undefined && { decayStartPoints: body.decayStartPoints }),
         ...(body.decayPointsPerInterval !== undefined && { decayPointsPerInterval: body.decayPointsPerInterval }),
+        ...(body.decayIntervalSeconds !== undefined && { decayIntervalSeconds: Math.max(1, body.decayIntervalSeconds) }),
       })
       .where(eq(challenges.id, challengeId))
       .returning();

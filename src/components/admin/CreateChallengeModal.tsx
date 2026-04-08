@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import EmojiPicker from "@/components/ui/EmojiPicker";
+import { toSeconds } from "@/lib/decay";
 
 interface QuestionInput {
   questionText: string;
@@ -36,6 +37,8 @@ export default function CreateChallengeModal({
   const [decayEnabled, setDecayEnabled] = useState(false);
   const [decayStartPoints, setDecayStartPoints] = useState(40);
   const [decayPointsPerInterval, setDecayPointsPerInterval] = useState(1);
+  const [decayIntervalValue, setDecayIntervalValue] = useState(10);
+  const [decayIntervalUnit, setDecayIntervalUnit] = useState<"seconds" | "minutes" | "hours">("minutes");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -111,6 +114,7 @@ export default function CreateChallengeModal({
       if (decayEnabled) {
         body.decayStartPoints = decayStartPoints;
         body.decayPointsPerInterval = decayPointsPerInterval;
+        body.decayIntervalSeconds = toSeconds(decayIntervalValue, decayIntervalUnit);
       }
 
       const res = await fetch("/api/challenges", {
@@ -141,6 +145,8 @@ export default function CreateChallengeModal({
       setDecayEnabled(false);
       setDecayStartPoints(40);
       setDecayPointsPerInterval(1);
+      setDecayIntervalValue(10);
+      setDecayIntervalUnit("minutes");
       onCreated();
       onClose();
     } catch {
@@ -293,26 +299,52 @@ export default function CreateChallengeModal({
               <span className="text-sm font-medium text-[#8B7355]">Decaying points</span>
             </label>
             {decayEnabled && (
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className={labelClass}>Starting Points</label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={decayStartPoints}
-                    onChange={(e) => setDecayStartPoints(parseInt(e.target.value) || 40)}
-                    className={inputClass}
-                  />
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={labelClass}>Starting Points</label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={decayStartPoints}
+                      onChange={(e) => setDecayStartPoints(parseInt(e.target.value) || 40)}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Points lost per tick</label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={decayPointsPerInterval}
+                      onChange={(e) => setDecayPointsPerInterval(parseInt(e.target.value) || 1)}
+                      className={inputClass}
+                    />
+                  </div>
                 </div>
                 <div>
-                  <label className={labelClass}>Points lost / 10 min</label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={decayPointsPerInterval}
-                    onChange={(e) => setDecayPointsPerInterval(parseInt(e.target.value) || 1)}
-                    className={inputClass}
-                  />
+                  <label className={labelClass}>Tick every</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <input
+                      type="number"
+                      min={1}
+                      value={decayIntervalValue}
+                      onChange={(e) => setDecayIntervalValue(parseInt(e.target.value) || 1)}
+                      className={inputClass}
+                    />
+                    <select
+                      value={decayIntervalUnit}
+                      onChange={(e) => setDecayIntervalUnit(e.target.value as "seconds" | "minutes" | "hours")}
+                      className={`${inputClass} bg-white`}
+                    >
+                      <option value="seconds">seconds</option>
+                      <option value="minutes">minutes</option>
+                      <option value="hours">hours</option>
+                    </select>
+                  </div>
+                  <p className="text-xs text-[#8B7355]/70 mt-1">
+                    Tip: pair with a deadline to bound the decay window.
+                  </p>
                 </div>
               </div>
             )}

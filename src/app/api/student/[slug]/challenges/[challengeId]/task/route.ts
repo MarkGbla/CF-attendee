@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { students, challenges, taskSubmissions, studentChallengeProgress } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
+import { computeDecayedPoints } from "@/lib/decay";
 
 interface Params {
   params: Promise<{ slug: string; challengeId: string }>;
@@ -93,12 +94,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     // Calculate decay points snapshot
     let pointsSnapshot = challenge.pointsReward;
     if (challenge.decayEnabled) {
-      const elapsedSec = Math.floor(
-        (Date.now() - new Date(challenge.createdAt).getTime()) / 1000
-      );
-      const intervals = Math.floor(elapsedSec / 600); // 10-minute windows
-      const lost = intervals * challenge.decayPointsPerInterval;
-      pointsSnapshot = Math.max(0, challenge.decayStartPoints - lost);
+      pointsSnapshot = computeDecayedPoints(challenge);
     }
 
     const [submission] = await db
