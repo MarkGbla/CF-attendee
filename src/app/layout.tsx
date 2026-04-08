@@ -10,7 +10,10 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "QuestLog",
   description: "Level up your class. Track the adventure with leaderboards, challenges, badges & streaks.",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || "https://questlog.vercel.app"),
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_BASE_URL ||
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://cf-quest.vercel.app")
+  ),
   openGraph: {
     title: "QuestLog",
     description: "Level up your class. Track the adventure with leaderboards, challenges, badges & streaks.",
