@@ -16,10 +16,22 @@ export const metadata = {
   openGraph: {
     title: "Leaderboard - QuestLog",
     description: "See who's leading the attendance race!",
+    type: "website",
+    siteName: "QuestLog",
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: "QuestLog — Live Leaderboard",
+      },
+    ],
   },
   twitter: {
+    card: "summary_large_image",
     title: "Leaderboard - QuestLog",
     description: "See who's leading the attendance race!",
+    images: ["/opengraph-image"],
   },
 };
 
