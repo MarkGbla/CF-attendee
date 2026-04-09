@@ -144,36 +144,38 @@ export async function POST(request: NextRequest, { params }: Params) {
       passed,
     });
 
-    // If passed, update progress
+    // One-shot: always mark progress complete after first attempt.
+    // Points/badge only awarded if passed.
+    let earnedPoints = 0;
     if (passed) {
-      let earnedPoints = challenge.pointsReward;
-      if (challenge.decayEnabled) {
-        earnedPoints = computeDecayedPoints(challenge);
-      }
-
-      await db
-        .insert(studentChallengeProgress)
-        .values({
-          studentId: student.id,
-          challengeId: cid,
-          completed: true,
-          pointsEarned: earnedPoints,
-          badgeEarned: !!challenge.badgeName,
-          completedAt: sql`now()`,
-        })
-        .onConflictDoUpdate({
-          target: [
-            studentChallengeProgress.studentId,
-            studentChallengeProgress.challengeId,
-          ],
-          set: {
-            completed: sql`true`,
-            pointsEarned: sql`${earnedPoints}`,
-            badgeEarned: sql`${!!challenge.badgeName}`,
-            completedAt: sql`now()`,
-          },
-        });
+      earnedPoints = challenge.decayEnabled
+        ? computeDecayedPoints(challenge)
+        : challenge.pointsReward;
     }
+    const badgeEarned = passed && !!challenge.badgeName;
+
+    await db
+      .insert(studentChallengeProgress)
+      .values({
+        studentId: student.id,
+        challengeId: cid,
+        completed: true,
+        pointsEarned: earnedPoints,
+        badgeEarned,
+        completedAt: sql`now()`,
+      })
+      .onConflictDoUpdate({
+        target: [
+          studentChallengeProgress.studentId,
+          studentChallengeProgress.challengeId,
+        ],
+        set: {
+          completed: sql`true`,
+          pointsEarned: sql`${earnedPoints}`,
+          badgeEarned: sql`${badgeEarned}`,
+          completedAt: sql`now()`,
+        },
+      });
 
     return NextResponse.json({ score, total, passed });
   } catch {

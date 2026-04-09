@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { students, challenges, taskSubmissions, studentChallengeProgress } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { computeDecayedPoints } from "@/lib/decay";
 
 interface Params {
@@ -106,6 +106,32 @@ export async function POST(request: NextRequest, { params }: Params) {
         pointsSnapshot,
       })
       .returning();
+
+    // Freeze the challenge for this student after their one submission.
+    // Points/badge are awarded immediately based on the snapshot.
+    const badgeEarned = !!challenge.badgeName;
+    await db
+      .insert(studentChallengeProgress)
+      .values({
+        studentId: student.id,
+        challengeId: cid,
+        completed: true,
+        pointsEarned: pointsSnapshot,
+        badgeEarned,
+        completedAt: sql`now()`,
+      })
+      .onConflictDoUpdate({
+        target: [
+          studentChallengeProgress.studentId,
+          studentChallengeProgress.challengeId,
+        ],
+        set: {
+          completed: sql`true`,
+          pointsEarned: sql`${pointsSnapshot}`,
+          badgeEarned: sql`${badgeEarned}`,
+          completedAt: sql`now()`,
+        },
+      });
 
     return NextResponse.json(submission, { status: 201 });
   } catch {

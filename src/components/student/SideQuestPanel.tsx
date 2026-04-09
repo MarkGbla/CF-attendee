@@ -210,19 +210,8 @@ export default function SideQuestPanel({
                 >
                   {result.passed
                     ? "Passed! Badge earned!"
-                    : "Not quite. Try again!"}
+                    : "Not quite — this quest is now closed."}
                 </p>
-                {!result.passed && (
-                  <button
-                    onClick={() => {
-                      setResult(null);
-                      setAnswers(new Array(questions.length).fill(-1));
-                    }}
-                    className="mt-3 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition cursor-pointer"
-                  >
-                    Retry
-                  </button>
-                )}
               </div>
             ) : (
               <>
