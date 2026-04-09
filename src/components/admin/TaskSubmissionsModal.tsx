@@ -97,12 +97,21 @@ export default function TaskSubmissionsModal({
   async function handleReview(subId: number, status: "approved" | "rejected") {
     setUpdating(subId);
     try {
-      await fetch(`/api/challenges/${challengeId}/submissions/${subId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
-      fetchData();
+      const res = await fetch(
+        `/api/challenges/${challengeId}/submissions/${subId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status }),
+        }
+      );
+      if (res.ok) {
+        // Update in place so the next pending one slides in
+        // without a refetch / scroll jump.
+        setTaskSubs((prev) =>
+          prev.map((s) => (s.id === subId ? { ...s, status } : s))
+        );
+      }
     } finally {
       setUpdating(null);
     }
@@ -258,71 +267,91 @@ export default function TaskSubmissionsModal({
               )
             )}
 
-            {/* ─── Task Submissions View ─── */}
-            {challengeType === "task" && (
-              taskSubs.length === 0 ? (
-                <p className="text-[#8B7355] text-center py-8">
-                  No submissions yet
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {taskSubs.map((sub) => (
+            {/* ─── Task Submissions View (one-at-a-time grader) ─── */}
+            {challengeType === "task" && (() => {
+              if (taskSubs.length === 0) {
+                return (
+                  <p className="text-[#8B7355] text-center py-8">
+                    No submissions yet
+                  </p>
+                );
+              }
+              const pending = taskSubs.filter((s) => s.status === "pending");
+              const reviewedCount = taskSubs.length - pending.length;
+
+              if (pending.length === 0) {
+                return (
+                  <div className="text-center py-10">
+                    <div className="text-4xl mb-2">🎉</div>
+                    <p className="text-[#1A1A1A] font-semibold">
+                      All caught up
+                    </p>
+                    <p className="text-[#8B7355] text-sm mt-1">
+                      Reviewed {reviewedCount} of {taskSubs.length} submissions
+                    </p>
+                  </div>
+                );
+              }
+
+              const sub = pending[0];
+              const current = reviewedCount + 1;
+              return (
+                <div>
+                  <div className="flex items-center justify-between mb-3 text-xs font-semibold text-[#8B7355]">
+                    <span>
+                      Reviewing {current} of {taskSubs.length}
+                    </span>
+                    <span>{pending.length} pending</span>
+                  </div>
+                  <div className="w-full h-1.5 bg-[#F5F0EB] rounded-full overflow-hidden mb-4">
                     <div
-                      key={sub.id}
-                      className="border border-[#E8E0D8] rounded-2xl p-3 sm:p-4"
-                    >
-                      <div className="flex items-center justify-between mb-2 gap-2">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-8 h-8 shrink-0 rounded-full bg-[#F5E6D3] flex items-center justify-center text-xs font-bold text-[#8B7355]">
-                            {sub.studentName.charAt(0).toUpperCase()}
-                          </div>
-                          <span className="font-medium text-[#1A1A1A] text-sm truncate">
-                            {sub.studentName}
-                          </span>
-                        </div>
-                        <span
-                          className={`text-xs font-semibold px-2 py-1 rounded-lg border shrink-0 ${
-                            sub.status === "approved"
-                              ? "bg-green-50 text-green-700 border-green-200"
-                              : sub.status === "rejected"
-                              ? "bg-red-50 text-red-600 border-red-200"
-                              : "bg-amber-50 text-amber-700 border-amber-200"
-                          }`}
-                        >
-                          {sub.status}
-                        </span>
+                      className="h-full bg-[#C4A265] transition-all"
+                      style={{
+                        width: `${(reviewedCount / taskSubs.length) * 100}%`,
+                      }}
+                    />
+                  </div>
+
+                  <div
+                    key={sub.id}
+                    className="border border-[#E8E0D8] rounded-2xl p-4 animate-slide-up"
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 shrink-0 rounded-full bg-[#F5E6D3] flex items-center justify-center text-sm font-bold text-[#8B7355]">
+                        {sub.studentName.charAt(0).toUpperCase()}
                       </div>
-                      <p className="text-sm text-[#1A1A1A] mb-3 whitespace-pre-wrap bg-[#FDFAF7] p-3 rounded-xl break-all">
-                        {sub.submissionText}
-                      </p>
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                        <span className="text-xs text-[#8B7355]">
-                          {new Date(sub.submittedAt).toLocaleDateString()}
-                        </span>
-                        {sub.status === "pending" && (
-                          <div className="flex gap-2 w-full sm:w-auto">
-                            <button
-                              onClick={() => handleReview(sub.id, "approved")}
-                              disabled={updating === sub.id}
-                              className="flex-1 sm:flex-none px-3 py-1.5 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600 transition disabled:opacity-50 cursor-pointer"
-                            >
-                              Approve
-                            </button>
-                            <button
-                              onClick={() => handleReview(sub.id, "rejected")}
-                              disabled={updating === sub.id}
-                              className="flex-1 sm:flex-none px-3 py-1.5 bg-red-400 text-white text-sm font-medium rounded-lg hover:bg-red-500 transition disabled:opacity-50 cursor-pointer"
-                            >
-                              Reject
-                            </button>
-                          </div>
-                        )}
+                      <div className="min-w-0">
+                        <div className="font-semibold text-[#1A1A1A] truncate">
+                          {sub.studentName}
+                        </div>
+                        <div className="text-xs text-[#8B7355]">
+                          {new Date(sub.submittedAt).toLocaleString()}
+                        </div>
                       </div>
                     </div>
-                  ))}
+                    <p className="text-sm text-[#1A1A1A] mb-4 whitespace-pre-wrap bg-[#FDFAF7] p-3 rounded-xl break-all max-h-60 overflow-y-auto">
+                      {sub.submissionText}
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleReview(sub.id, "rejected")}
+                        disabled={updating === sub.id}
+                        className="flex-1 px-3 py-2.5 bg-red-400 text-white text-sm font-semibold rounded-lg hover:bg-red-500 transition disabled:opacity-50 cursor-pointer"
+                      >
+                        Reject
+                      </button>
+                      <button
+                        onClick={() => handleReview(sub.id, "approved")}
+                        disabled={updating === sub.id}
+                        className="flex-1 px-3 py-2.5 bg-green-500 text-white text-sm font-semibold rounded-lg hover:bg-green-600 transition disabled:opacity-50 cursor-pointer"
+                      >
+                        {updating === sub.id ? "Saving..." : "Approve"}
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              )
-            )}
+              );
+            })()}
 
             {/* ─── Streak (no submissions) ─── */}
             {challengeType === "streak" && (
