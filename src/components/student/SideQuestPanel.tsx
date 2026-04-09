@@ -24,6 +24,7 @@ interface SideQuestPanelProps {
     createdAt: string;
   };
   completed: boolean;
+  pointsEarned: number;
   currentStreak: number;
 }
 
@@ -46,6 +47,7 @@ export default function SideQuestPanel({
   studentSlug,
   challenge,
   completed,
+  pointsEarned,
   currentStreak,
 }: SideQuestPanelProps) {
   const [questions, setQuestions] = useState<QuizQ[]>([]);
@@ -186,12 +188,30 @@ export default function SideQuestPanel({
         {completed && (
           <div className="text-center py-6">
             <div className="text-4xl mb-2">
-              {challenge.badgeEmoji || "&#x2705;"}
+              {pointsEarned > 0 ? (challenge.badgeEmoji || "✅") : "📨"}
             </div>
-            <p className="text-lg font-bold text-green-600">Completed!</p>
-            <p className="text-sm text-gray-500 mt-1">
-              +{challenge.pointsReward} points earned
-            </p>
+            {pointsEarned > 0 ? (
+              <>
+                <p className="text-lg font-bold text-green-600">Completed!</p>
+                <p className="text-sm text-gray-500 mt-1">
+                  +{pointsEarned} points earned
+                </p>
+              </>
+            ) : challenge.type === "task" ? (
+              <>
+                <p className="text-lg font-bold text-teal-600">Submitted</p>
+                <p className="text-sm text-gray-500 mt-1">
+                  Waiting for admin review.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-lg font-bold text-gray-600">Quest closed</p>
+                <p className="text-sm text-gray-500 mt-1">
+                  No points earned on this attempt.
+                </p>
+              </>
+            )}
           </div>
         )}
 

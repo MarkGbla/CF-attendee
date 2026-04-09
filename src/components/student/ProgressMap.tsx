@@ -310,7 +310,11 @@ export default function ProgressMap({
 
       {/* Active Challenges Banner */}
       {(() => {
-        const pending = sideQuests.filter((sq) => !sq.progress?.completed);
+        const pending = sideQuests.filter(
+          (sq) =>
+            !sq.progress?.completed &&
+            !(sq.challenge.deadline && new Date(sq.challenge.deadline) < new Date())
+        );
         if (pending.length === 0) return null;
         return (
           <button
@@ -400,6 +404,10 @@ export default function ProgressMap({
                       cy={sqY}
                       type={sq.challenge.type}
                       completed={sq.progress?.completed ?? false}
+                      expired={
+                        !!sq.challenge.deadline &&
+                        new Date(sq.challenge.deadline) < new Date()
+                      }
                       badgeEmoji={sq.challenge.badgeEmoji}
                       pointsReward={sq.challenge.pointsReward}
                       title={sq.challenge.title}
@@ -503,6 +511,7 @@ export default function ProgressMap({
           studentSlug={studentSlug}
           challenge={activeQuest.challenge}
           completed={activeQuest.progress?.completed ?? false}
+          pointsEarned={activeQuest.progress?.pointsEarned ?? 0}
           currentStreak={currentStreak}
         />
       )}

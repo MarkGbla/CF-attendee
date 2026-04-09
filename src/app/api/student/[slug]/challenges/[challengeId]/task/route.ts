@@ -108,16 +108,15 @@ export async function POST(request: NextRequest, { params }: Params) {
       .returning();
 
     // Freeze the challenge for this student after their one submission.
-    // Points/badge are awarded immediately based on the snapshot.
-    const badgeEarned = !!challenge.badgeName;
+    // Points/badge are withheld until admin approves the submission.
     await db
       .insert(studentChallengeProgress)
       .values({
         studentId: student.id,
         challengeId: cid,
         completed: true,
-        pointsEarned: pointsSnapshot,
-        badgeEarned,
+        pointsEarned: 0,
+        badgeEarned: false,
         completedAt: sql`now()`,
       })
       .onConflictDoUpdate({
@@ -127,8 +126,8 @@ export async function POST(request: NextRequest, { params }: Params) {
         ],
         set: {
           completed: sql`true`,
-          pointsEarned: sql`${pointsSnapshot}`,
-          badgeEarned: sql`${badgeEarned}`,
+          pointsEarned: sql`0`,
+          badgeEarned: sql`false`,
           completedAt: sql`now()`,
         },
       });

@@ -25,6 +25,27 @@ export async function PUT(request: NextRequest, { params }: Params) {
       );
     }
 
+    // Guard against double-grading — once reviewed, stay reviewed.
+    const [existing] = await db
+      .select()
+      .from(taskSubmissions)
+      .where(eq(taskSubmissions.id, submissionId))
+      .limit(1);
+
+    if (!existing) {
+      return NextResponse.json(
+        { error: "Submission not found" },
+        { status: 404 }
+      );
+    }
+
+    if (existing.status !== "pending") {
+      return NextResponse.json(
+        { error: `Submission already ${existing.status}` },
+        { status: 409 }
+      );
+    }
+
     const [updated] = await db
       .update(taskSubmissions)
       .set({

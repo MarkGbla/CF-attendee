@@ -5,6 +5,7 @@ interface SideQuestNodeProps {
   cy: number;
   type: "quiz" | "task" | "streak";
   completed: boolean;
+  expired?: boolean;
   badgeEmoji: string | null;
   pointsReward: number;
   title: string;
@@ -43,6 +44,7 @@ export default function SideQuestNode({
   cy,
   type,
   completed,
+  expired = false,
   badgeEmoji,
   pointsReward,
   title,
@@ -51,7 +53,8 @@ export default function SideQuestNode({
   const size = 24;
   const c = typeConfigs[type];
   const gradId = `sq-grad-${cx}-${cy}`;
-  const opacity = completed ? 1 : 0.85;
+  const locked = expired && !completed;
+  const opacity = locked ? 0.4 : completed ? 1 : 0.85;
 
   // Hexagon points
   function hexPoints(cx: number, cy: number, r: number): string {
@@ -65,10 +68,16 @@ export default function SideQuestNode({
 
   return (
     <g
-      onClick={onClick}
-      style={{ cursor: "pointer" }}
+      onClick={locked ? undefined : onClick}
+      style={{ cursor: locked ? "not-allowed" : "pointer" }}
       opacity={opacity}
-      className={completed ? "animate-side-quest-glow" : "animate-pulse-quest"}
+      className={
+        locked
+          ? ""
+          : completed
+          ? "animate-side-quest-glow"
+          : "animate-pulse-quest"
+      }
     >
       <defs>
         <radialGradient id={gradId} cx="35%" cy="30%" r="65%">
@@ -145,6 +154,23 @@ export default function SideQuestNode({
       >
         +{pointsReward}pt
       </text>
+
+      {/* Expired lock */}
+      {locked && (
+        <g>
+          <circle cx={cx + size - 2} cy={cy - size + 2} r={8} fill="#6B7280" stroke="white" strokeWidth={1.5} />
+          <text
+            x={cx + size - 2}
+            y={cy - size + 3}
+            textAnchor="middle"
+            dominantBaseline="central"
+            fontSize={10}
+            fill="white"
+          >
+            🔒
+          </text>
+        </g>
+      )}
 
       {/* Completed checkmark */}
       {completed && (

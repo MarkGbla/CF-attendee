@@ -63,8 +63,11 @@ export interface TaskSubmission {
   studentId: number;
   challengeId: number;
   submissionText: string;
+  pointsSnapshot: number;
   status: SubmissionStatus;
+  adminNotes: string | null;
   submittedAt: string;
+  reviewedAt: string | null;
 }
 
 export interface SideQuestNode {

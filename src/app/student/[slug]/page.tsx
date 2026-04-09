@@ -4,6 +4,7 @@ import {
   attendance,
   challenges,
   studentChallengeProgress,
+  taskSubmissions,
 } from "@/lib/db/schema";
 import { eq, asc, max } from "drizzle-orm";
 import { notFound } from "next/navigation";
@@ -85,6 +86,15 @@ export default async function StudentPage({ params }: Props) {
 
   const progressMap = new Map(progress.map((p) => [p.challengeId, p]));
 
+  // Any existing task submission (pending/approved/rejected) means the
+  // challenge has been used up for this student — treat it as completed
+  // even if no progress row was written (historical data or race).
+  const taskSubs = await db
+    .select()
+    .from(taskSubmissions)
+    .where(eq(taskSubmissions.studentId, student.id));
+  const submittedChallengeIds = new Set(taskSubs.map((t) => t.challengeId));
+
   // Calculate streaks (read-only)
   let currentStreak = 0;
   for (const record of records) {
@@ -114,17 +124,34 @@ export default async function StudentPage({ params }: Props) {
       decayIntervalSeconds: c.decayIntervalSeconds,
       createdAt: c.createdAt.toISOString(),
     },
-    progress: progressMap.get(c.id)
-      ? {
-          id: progressMap.get(c.id)!.id,
-          studentId: progressMap.get(c.id)!.studentId,
-          challengeId: progressMap.get(c.id)!.challengeId,
-          completed: progressMap.get(c.id)!.completed,
-          pointsEarned: progressMap.get(c.id)!.pointsEarned,
-          badgeEarned: progressMap.get(c.id)!.badgeEarned,
-          completedAt: progressMap.get(c.id)!.completedAt?.toISOString() ?? null,
-        }
-      : null,
+    progress: (() => {
+      const p = progressMap.get(c.id);
+      if (p) {
+        return {
+          id: p.id,
+          studentId: p.studentId,
+          challengeId: p.challengeId,
+          completed: p.completed,
+          pointsEarned: p.pointsEarned,
+          badgeEarned: p.badgeEarned,
+          completedAt: p.completedAt?.toISOString() ?? null,
+        };
+      }
+      // Fallback: student has a task submission but no progress row yet.
+      // Show as frozen/completed with 0 points so the UI stops treating it as open.
+      if (c.type === "task" && submittedChallengeIds.has(c.id)) {
+        return {
+          id: -1,
+          studentId: student.id,
+          challengeId: c.id,
+          completed: true,
+          pointsEarned: 0,
+          badgeEarned: false,
+          completedAt: null,
+        };
+      }
+      return null;
+    })(),
     anchorSession: c.anchorSession,
   }));
 
